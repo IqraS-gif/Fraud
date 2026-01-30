@@ -1,0 +1,10 @@
+{
+  "/upi/page": "app/upi/page.js",
+  "/heatmap/page": "app/heatmap/page.js",
+  "/community/page": "app/community/page.js",
+  "/salami-attack/page": "app/salami-attack/page.js",
+  "/bank-transactions/page": "app/bank-transactions/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/voice-assistant/page": "app/voice-assistant/page.js"
+}

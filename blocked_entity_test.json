@@ -1,0 +1,19 @@
+{
+    "description": "Blocked Entity Test - Amazon Refund Scam",
+    "test_case": {
+        "user_id": "ACC_9999",
+        "amount": 12500.00,
+        "transaction_type": "Transfer",
+        "merchant_category": "General",
+        "location": "Mumbai",
+        "device_used": "Mobile",
+        "time_since_last_transaction": 120,
+        "spending_deviation_score": 1.1,
+        "velocity_score": 0.5,
+        "lat": 19.0760,
+        "long": 72.8777,
+        "geo_anomaly_score": 0.0,
+        "payment_channel": "UPI",
+        "receiver_account": "amazon-refunds@okicici"
+    }
+}

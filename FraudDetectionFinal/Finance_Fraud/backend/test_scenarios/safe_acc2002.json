@@ -1,0 +1,18 @@
+{
+    "description": "Businessman (ACC_2002) - Routine Inventory Purchase",
+    "test_case": {
+        "user_id": "ACC_2002",
+        "amount": 4500.0,
+        "transaction_type": "Payment",
+        "merchant_category": "Medical_Lab",
+        "location": "Delhi, DL",
+        "device_used": "device_2002_business",
+        "time_since_last_transaction": 720,
+        "spending_deviation_score": 0.1,
+        "velocity_score": 2,
+        "geo_anomaly_score": 0.05,
+        "payment_channel": "Bank_Transfer",
+        "lat": 28.6139,
+        "long": 77.2090
+    }
+}

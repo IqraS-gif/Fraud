@@ -1,0 +1,35 @@
+# Static mapping of Indian cities to coordinates
+CITY_COORDS = {
+    "Kolkata, WB": {"lat": 22.5726, "lng": 88.3639},
+    "Visakhapatnam, AP": {"lat": 17.6868, "lng": 83.2185},
+    "Nagpur, MH": {"lat": 21.1458, "lng": 79.0882},
+    "Kanpur, UP": {"lat": 26.4499, "lng": 80.3319},
+    "Surat, GJ": {"lat": 21.1702, "lng": 72.8311},
+    "Patna, BR": {"lat": 25.5941, "lng": 85.1376},
+    "Mumbai, MH": {"lat": 19.0760, "lng": 72.8777},
+    "Pune, MH": {"lat": 18.5204, "lng": 73.8567},
+    "Bhopal, MP": {"lat": 23.2599, "lng": 77.4126},
+    "Hyderabad, TS": {"lat": 17.3850, "lng": 78.4867},
+    "Lucknow, UP": {"lat": 26.8467, "lng": 80.9462},
+    "Vadodara, GJ": {"lat": 22.3072, "lng": 73.1812},
+    "Chennai, TN": {"lat": 13.0827, "lng": 80.2707},
+    "Delhi, DL": {"lat": 28.7041, "lng": 77.1025},
+    "Thane, MH": {"lat": 19.2183, "lng": 72.9781},
+    "Ahmedabad, GJ": {"lat": 23.0225, "lng": 72.5714},
+    "Jaipur, RJ": {"lat": 26.9124, "lng": 75.7873},
+    "Bangalore, KA": {"lat": 12.9716, "lng": 77.5946},
+    "Pimpri-Chinchwad, MH": {"lat": 18.6279, "lng": 73.8009},
+    "Indore, MP": {"lat": 22.7196, "lng": 75.8577},
+    
+    # Specific Phishing Hubs (Blocked Registry)
+    "Jamtara, Jharkhand": {"lat": 23.9530, "lng": 86.8016},
+    "Nuh, Haryana": {"lat": 28.1131, "lng": 77.0034},
+    "Kolkata, West Bengal": {"lat": 22.5726, "lng": 88.3639},
+    "Mumbai, Maharashtra": {"lat": 19.0760, "lng": 72.8777},
+    "Delhi NCR": {"lat": 28.7041, "lng": 77.1025},
+    "Jaipur, Rajasthan": {"lat": 26.9124, "lng": 75.7873},
+    "Bangalore, Karnataka": {"lat": 12.9716, "lng": 77.5946},
+    "Hyderabad, Telangana": {"lat": 17.3850, "lng": 78.4867},
+    "Chennai, Tamil Nadu": {"lat": 13.0827, "lng": 80.2707},
+    "Surat, Gujarat": {"lat": 21.1702, "lng": 72.8311}
+}

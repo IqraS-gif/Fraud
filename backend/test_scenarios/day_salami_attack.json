@@ -1,0 +1,88 @@
+{
+    "test_cases": [
+        {
+            "user_id": "ACC_1001",
+            "amount": 10.50,
+            "merchant_category": "Food",
+            "receiver_account": "ACC_GPAY_1",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 8.00,
+            "merchant_category": "Food",
+            "receiver_account": "ACC_GPAY_2",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 4.50,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 1.50,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 1.20,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 1.10,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 1.05,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 0.95,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 0.85,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 0.75,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 0.65,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 0.55,
+            "merchant_category": "Micro-Payment",
+            "receiver_account": "ACC_GPAY_SAM",
+            "location": "Mumbai, MH"
+        }
+    ]
+}

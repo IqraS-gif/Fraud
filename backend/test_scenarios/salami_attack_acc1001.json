@@ -1,0 +1,105 @@
+{
+    "description": "Progressive Salami Attack - Starts normal, ends flagged",
+    "test_cases": [
+        {
+            "user_id": "ACC_1001",
+            "amount": 10.0,
+            "merchant_category": "Food",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 120,
+            "velocity_score": 1,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 8.5,
+            "merchant_category": "Food",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 60,
+            "velocity_score": 2,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 5.0,
+            "merchant_category": "Micro-Payment",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 15,
+            "velocity_score": 3,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 4.5,
+            "merchant_category": "Micro-Payment",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 5,
+            "velocity_score": 5,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 2.0,
+            "merchant_category": "Micro-Payment",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 1,
+            "velocity_score": 8,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 1.5,
+            "merchant_category": "Micro-Payment",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 0.5,
+            "velocity_score": 15,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 1.0,
+            "merchant_category": "Micro-Payment",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 0.2,
+            "velocity_score": 25,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 0.95,
+            "merchant_category": "Micro-Payment",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 0.1,
+            "velocity_score": 40,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 0.85,
+            "merchant_category": "Micro-Payment",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 0.05,
+            "velocity_score": 60,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        },
+        {
+            "user_id": "ACC_1001",
+            "amount": 0.75,
+            "merchant_category": "Micro-Payment",
+            "location": "Mumbai, MH",
+            "time_since_last_transaction": 0.01,
+            "velocity_score": 85,
+            "receiver_account": "ACC_9999",
+            "payment_channel": "UPI"
+        }
+    ]
+}

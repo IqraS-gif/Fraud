@@ -1,0 +1,9 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/community/page": "app/community/page.js",
+  "/salami-attack/page": "app/salami-attack/page.js",
+  "/heatmap/page": "app/heatmap/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/upi/page": "app/upi/page.js"
+}

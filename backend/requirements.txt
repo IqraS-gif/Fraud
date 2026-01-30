@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+pandas
+numpy
+
+scikit-learn
+joblib
+scipy
+firebase-admin
+lightgbm
+torch
+groq
+python-dotenv
+tensorflow-cpu

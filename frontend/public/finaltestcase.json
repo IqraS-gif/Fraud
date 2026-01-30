@@ -1,0 +1,112 @@
+[
+    {
+        "description": "Blocked Entity Test - Amazon Refund Scam",
+        "test_case": {
+            "user_id": "ACC_9999",
+            "amount": 12500.0,
+            "transaction_type": "Transfer",
+            "merchant_category": "General",
+            "location": "Mumbai",
+            "device_used": "Mobile",
+            "time_since_last_transaction": 120,
+            "spending_deviation_score": 1.1,
+            "velocity_score": 0.5,
+            "lat": 19.076,
+            "long": 72.8777,
+            "geo_anomaly_score": 0.0,
+            "payment_channel": "UPI",
+            "receiver_account": "amazon-refunds@okicici"
+        }
+    },
+    {
+        "description": "Normal User (ACC_1001) - Potential Account Takeover",
+        "test_case": {
+            "user_id": "ACC_1001",
+            "amount": 5000.0,
+            "transaction_type": "Transfer",
+            "merchant_category": "Luxury",
+            "location": "Kolkata, WB",
+            "device_used": "Emulated_Device",
+            "time_since_last_transaction": 15,
+            "spending_deviation_score": 15.0,
+            "velocity_score": 9.5,
+            "geo_anomaly_score": 1.0,
+            "payment_channel": "Web_API",
+            "lat": 22.5726,
+            "long": 88.3639
+        }
+    },
+    {
+        "description": "Businessman (ACC_2002) - Anomalous Crypto Investment",
+        "test_case": {
+            "user_id": "ACC_2002",
+            "amount": 75000.0,
+            "transaction_type": "Transfer",
+            "merchant_category": "Crypto",
+            "location": "Kolkata, WB",
+            "device_used": "Unknown_Device",
+            "time_since_last_transaction": 5,
+            "spending_deviation_score": 15.0,
+            "velocity_score": 12,
+            "geo_anomaly_score": 15.0,
+            "payment_channel": "Web_API",
+            "lat": 22.5726,
+            "long": 88.3639
+        }
+    },
+    {
+        "description": "International Geolocation Anomaly (London)",
+        "test_case": {
+            "user_id": "ACC_1001",
+            "amount": 85000.0,
+            "transaction_type": "International Transfer",
+            "merchant_category": "Luxury Goods",
+            "location": "London, UK",
+            "device_used": "Unknown Device",
+            "time_since_last_transaction": 120,
+            "spending_deviation_score": 4.5,
+            "velocity_score": 0.1,
+            "geo_anomaly_score": 0.99,
+            "payment_channel": "SWIFT",
+            "lat": 51.5074,
+            "long": -0.1278,
+            "receiver_account": "ACC_UK_BARCLAYS"
+        }
+    },
+    {
+        "description": "Normal User (ACC_1001) - Routine Medicine Purchase",
+        "test_case": {
+            "user_id": "ACC_1001",
+            "amount": 130.0,
+            "transaction_type": "Payment",
+            "merchant_category": "Pharmacy",
+            "location": "Mumbai, MH",
+            "device_used": "Mobile_App_Android",
+            "time_since_last_transaction": 86400,
+            "spending_deviation_score": 0.4,
+            "velocity_score": 1.1,
+            "geo_anomaly_score": 0.03,
+            "payment_channel": "Mobile_App",
+            "lat": 19.076,
+            "long": 72.8777
+        }
+    },
+    {
+        "description": "Businessman (ACC_2002) - Routine Inventory Purchase",
+        "test_case": {
+            "user_id": "ACC_2002",
+            "amount": 4500.0,
+            "transaction_type": "Payment",
+            "merchant_category": "Medical_Lab",
+            "location": "Delhi, DL",
+            "device_used": "device_2002_business",
+            "time_since_last_transaction": 720,
+            "spending_deviation_score": 0.1,
+            "velocity_score": 2,
+            "geo_anomaly_score": 0.05,
+            "payment_channel": "Bank_Transfer",
+            "lat": 28.6139,
+            "long": 77.209
+        }
+    }
+]

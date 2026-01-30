@@ -1,0 +1,18 @@
+{
+    "description": "Businessman (ACC_2002) - Anomalous Crypto Investment",
+    "test_case": {
+        "user_id": "ACC_2002",
+        "amount": 75000.0,
+        "transaction_type": "Transfer",
+        "merchant_category": "Crypto",
+        "location": "Kolkata, WB",
+        "device_used": "Unknown_Device",
+        "time_since_last_transaction": 5,
+        "spending_deviation_score": 15.0,
+        "velocity_score": 12,
+        "geo_anomaly_score": 15.0,
+        "payment_channel": "Web_API",
+        "lat": 22.5726,
+        "long": 88.3639
+    }
+}
