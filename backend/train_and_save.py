@@ -11,17 +11,17 @@ from sklearn.metrics import accuracy_score
 import joblib
 import json
 
+# Import shared utils to ensure consistent class paths for pickling
+try:
+    from ml_utils import SafeLabelEncoder, FEATURES_LGB, CAT_COLS, AE_FEATURES
+except ImportError:
+    # Handle running as script from root
+    from backend.ml_utils import SafeLabelEncoder, FEATURES_LGB, CAT_COLS, AE_FEATURES
+
 # --- CONFIG ---
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 MODELS_DIR = os.path.join(os.path.dirname(__file__), 'models')
 os.makedirs(MODELS_DIR, exist_ok=True)
-
-# Constants
-FEATURES_LGB = ['amount', 'transaction_type', 'merchant_category', 'location',
-               'device_used', 'time_since_last_transaction', 'spending_deviation_score',
-               'velocity_score', 'geo_anomaly_score', 'payment_channel']
-CAT_COLS = ['transaction_type', 'merchant_category', 'location', 'device_used', 'payment_channel']
-AE_FEATURES = ['amount', 'lat', 'long']
 
 class BehaviorAE(nn.Module):
     def __init__(self, input_dim):
@@ -30,20 +30,6 @@ class BehaviorAE(nn.Module):
         self.decoder = nn.Sequential(nn.Linear(2, input_dim))
     def forward(self, x):
         return self.decoder(self.encoder(x))
-
-class SafeLabelEncoder:
-    def __init__(self):
-        self.le = LabelEncoder()
-        self.classes_ = None
-
-    def fit(self, series):
-        self.le.fit(series.astype(str))
-        self.classes_ = set(self.le.classes_)
-        return self
-
-    def transform(self, series):
-        safe_series = series.astype(str).apply(lambda x: x if x in self.classes_ else list(self.classes_)[0])
-        return self.le.transform(safe_series)
 
 def train_and_save():
     print("🚀 Starting Local Training...")
@@ -104,10 +90,6 @@ def train_and_save():
             optimizer.step()
 
         # Extract Weights for NumPy Inference
-        # Structure: Encoder [W1, b1], Decoder [W2, b2]
-        # model.encoder[0] is Linear(3, 2) -> W (2x3), b (2)
-        # model.decoder[0] is Linear(2, 3) -> W (3x2), b (3)
-        
         user_weights = {
             "enc_w": model.encoder[0].weight.detach().numpy().tolist(),
             "enc_b": model.encoder[0].bias.detach().numpy().tolist(),

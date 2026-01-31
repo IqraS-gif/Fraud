@@ -6,16 +6,15 @@ import json
 from groq import Groq
 from dotenv import load_dotenv
 
+# Import shared utils
+try:
+    from ml_utils import SafeLabelEncoder, FEATURES_LGB, CAT_COLS, AE_FEATURES
+except ImportError:
+    from backend.ml_utils import SafeLabelEncoder, FEATURES_LGB, CAT_COLS, AE_FEATURES
+
 # Load API Key
 load_dotenv()
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-# Constants
-FEATURES_LGB = ['amount', 'transaction_type', 'merchant_category', 'location',
-               'device_used', 'time_since_last_transaction', 'spending_deviation_score',
-               'velocity_score', 'geo_anomaly_score', 'payment_channel']
-CAT_COLS = ['transaction_type', 'merchant_category', 'location', 'device_used', 'payment_channel']
-AE_FEATURES = ['amount', 'lat', 'long']
 
 class NumPyBehaviorAE:
     """Lightweight Autoencoder using pure NumPy for inference."""
@@ -32,18 +31,6 @@ class NumPyBehaviorAE:
         scaled_x = (x - self.scaler_mean) / self.scaler_scale
         
         # 2. Encoder (Linear -> ReLU)
-        # PyTorch Linear(x) = x @ W.T + b. 
-        # Our stored W is (Out, In). So W.T is (In, Out). 
-        # But wait, torch linear stores weights as (OutFeatures, InFeatures).
-        # x is (Batch, InFeatures).
-        # x @ W.T = (Batch, In) @ (In, Out) = (Batch, Out).
-        # I transposed it in __init__ assuming standard dot product.
-        # Let's verify: 
-        # stored 'enc_w' is from model.encoder[0].weight -> shape (2, 3).
-        # x is (1, 3).
-        # We want (1, 2).
-        # x @ W.T = (1, 3) @ (3, 2) = (1, 2). Correct.
-        
         z = np.dot(scaled_x, self.enc_w) + self.enc_b
         z = np.maximum(0, z) # ReLU
         
@@ -75,7 +62,7 @@ class HybridFraudModel:
                     import lightgbm as lgb
                     self.lgb_model = lgb.Booster(model_file=lgb_path)
                     print("✅ LightGBM loaded.")
-                except ImportError as ie:
+                except  (ImportError, OSError) as ie:
                     print(f"❌ LightGBM library missing or broken (libgomp?): {ie}")
                     print("⚠️ proceeding with LightGBM DISABLED.")
                     self.lgb_model = None
@@ -84,8 +71,6 @@ class HybridFraudModel:
                     self.lgb_model = None
             else:
                 print("⚠️ LightGBM model file not found.")
-                # We return False here because if the file is missing, we might want to trigger training (in dev)
-                # But in prod, it just means disabled.
                 return False
 
             # 2. Load Autoencoder Weights (JSON)
@@ -105,8 +90,12 @@ class HybridFraudModel:
             # 3. Load Label Encoders
             le_path = os.path.join(self.models_dir, 'label_encoders.joblib')
             if os.path.exists(le_path):
-                self.label_encoders = joblib.load(le_path)
-                print("✅ Label Encoders loaded.")
+                try:
+                    self.label_encoders = joblib.load(le_path)
+                    print("✅ Label Encoders loaded.")
+                except Exception as e:
+                    print(f"❌ Error loading Label Encoders (Class mismatch?): {e}")
+                    return False
             else:
                 print("⚠️ Label Encoders not found.")
                 return False
@@ -120,32 +109,14 @@ class HybridFraudModel:
     def train_models(self):
         """Fallback to in-memory training (DEV ONLY)."""
         print("⚠️ Artifacts missing. Falling back to IN-MEMORY TRAINING (Slow!)...")
-        # Lazy import heavies
         try:
-            import lightgbm as lgb
-            import torch
-            import torch.nn as nn
-            import torch.optim as optim
-            from sklearn.model_selection import train_test_split
-            from sklearn.preprocessing import LabelEncoder, StandardScaler
-            from sklearn.metrics import accuracy_score
-            
-            # Re-define classes here roughly just to make it run if really needed
-            # But actually, better to just raise error in production if this is called.
-            # For now, let's just warn and skip or implement a basic fallback?
-            # Creating the full training logic here again duplicates logic from train_and_save.
-            # Let's import the script instead!
-            
             from train_and_save import train_and_save
             train_and_save()
-            
-            # Now load them
             if not self.load_models():
                 raise RuntimeError("Training failed to produce valid models.")
-
         except ImportError:
-            print("❌ CRITICAL: Cannot train models because dev dependencies (torch, lightgbm) are missing.")
-            print("👉 Please run 'python backend/train_and_save.py' locally and upload 'backend/models/' folder.")
+            print("❌ CRITICAL: Cannot train models because dev dependencies are missing.")
+            print("👉 Please run 'python backend/train_and_save.py' locally.")
 
     def generate_ai_reasoning(self, tx_dict, p_fraud, recon_error, risk_level, language='en'):
         """Uses Groq to generate a natural language explanation."""
@@ -193,58 +164,38 @@ class HybridFraudModel:
 
     def predict(self, tx_dict, user_id, language='en'):
         if not self.lgb_model:
-            return {"error": "Models not loaded. Server is starting up or in bad state."}
+            # Fallback for LGBM disabled
+            p_fraud = 0.0 # Default if model broken
+        else:
+            test_df = pd.DataFrame([tx_dict])
+            lgb_input = test_df[FEATURES_LGB].copy()
+            for col in CAT_COLS:
+                if col in self.label_encoders:
+                    sle = self.label_encoders[col]
+                    lgb_input[col] = sle.transform(lgb_input[col])
+            
+            try:
+                p_fraud = self.lgb_model.predict(lgb_input)[0]
+            except Exception as e:
+                print(f"LGBM Prediction Error: {e}")
+                p_fraud = 0.0
 
+        # AE Logic (NumPy)
         test_df = pd.DataFrame([tx_dict])
-        
-        # 1. LightGBM Logic
-        # We need to construct input array for LGBM Booster
-        # If we use Booster, we prefer a Dataset or list of lists
-        # But we need to handle categorical encoding first
-        
-        lgb_input = test_df[FEATURES_LGB].copy()
-        
-        # Transform categories manually using loaded SafeLabelEncoders
-        # Note: In the training script, we wrote a helper class. 
-        # joblib loaded object is a DICT of these SafeLabelEncoder objects.
-        # But wait, SafeLabelEncoder class needs to be defined if we pickled the object itself!
-        # Good point. Joblib persistence of custom classes requires the class to be available.
-        # I defined SafeLabelEncoder in train_and_save.py.
-        # To make it loadable here easily, I should define it here too? 
-        # Actually, for robustness, I used joblib on the DICT. 
-        # But the objects INSIDE the dict are instances of SafeLabelEncoder.
-        # This might cause an ImportError during load if SafeLabelEncoder is not found validly.
-        # Let's add a SafeLabelEncoder definition here matching the one in train_and_save.py.
-        
-        for col in CAT_COLS:
-            if col in self.label_encoders:
-                # We expect self.label_encoders[col] to have a .transform() method
-                sle = self.label_encoders[col]
-                # Re-implement safe transform if the object method fails or is weird,
-                # but usually joblib works if class structure is same.
-                lgb_input[col] = sle.transform(lgb_input[col])
-        
-        # Convert to numpy array for Booster
-        # LightGBM booster.predict expects 2D array or file
-        p_fraud = self.lgb_model.predict(lgb_input)[0]
-
-        # 2. AE Logic (NumPy)
         if user_id in self.user_aes:
             ae = self.user_aes[user_id]
-            # Select features
-            ae_input = test_df[AE_FEATURES].values # Shape (1, 3)
+            ae_input = test_df[AE_FEATURES].values
             recon_error = ae.get_mse(ae_input)
         else:
             recon_error = 0.0
 
-        # 3. Risk Level
+        # Risk Level
         risk_level = "Low"
         if p_fraud > 0.7 or recon_error > 1.0:
             risk_level = "Critical"
         elif p_fraud > 0.3 or recon_error > 0.3:
             risk_level = "High"
 
-        # 4. Groq Reasoning
         reasoning = self.generate_ai_reasoning(tx_dict, p_fraud, recon_error, risk_level, language)
 
         return {
@@ -254,22 +205,6 @@ class HybridFraudModel:
             "risk_level": risk_level,
             "reasoning": reasoning
         }
-
-# Class definition for Pickling compatibility
-class SafeLabelEncoder:
-    def __init__(self):
-        from sklearn.preprocessing import LabelEncoder
-        self.le = LabelEncoder()
-        self.classes_ = None
-
-    def fit(self, series):
-        self.le.fit(series.astype(str))
-        self.classes_ = set(self.le.classes_)
-        return self
-
-    def transform(self, series):
-        safe_series = series.astype(str).apply(lambda x: x if x in self.classes_ else list(self.classes_)[0])
-        return self.le.transform(safe_series)
 
 # Singleton instance
 hybrid_model = HybridFraudModel()
