@@ -76,7 +76,7 @@ except Exception as e:
     blocked_ref = None
 
 # --- UPI SENTINEL ---
-UPI_MODEL_PATH = "upi_models/sentinel_vae_v1.keras"
+UPI_MODEL_PATH = "models/upi_weights.json"
 UPI_SCALER_PATH = "upi_models/feature_scaler.pkl"
 sentinel = None
 

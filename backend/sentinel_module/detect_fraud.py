@@ -4,78 +4,63 @@ import joblib
 from scipy import stats
 import os
 
-# Optional TensorFlow Import
-try:
-    import tensorflow as tf
-    from tensorflow.keras.models import load_model
-    from tensorflow.keras import layers, Model, backend as K
-    TF_AVAILABLE = True
-except ImportError:
-    TF_AVAILABLE = False
-    print("⚠️ TensorFlow not found. UPI Sentinel will be disabled.")
+import json
+# Removed TensorFlow imports to make it lightweight
+TF_AVAILABLE = False
 
-# --- 1. DEFINE CUSTOM LAYERS (Keep this just in case) ---
-if TF_AVAILABLE:
-    class Sampling(layers.Layer):
-        def call(self, inputs):
-            z_mean, z_log_var = inputs
-            batch = tf.shape(z_mean)[0]
-            dim = tf.shape(z_mean)[1]
-            epsilon = K.random_normal(shape=(batch, dim))
-            return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+class NumPyVAE:
+    """Lightweight VAE Inference using pure NumPy."""
+    def __init__(self, weights_path):
+        with open(weights_path, 'r') as f:
+            weights_data = json.load(f)
+        self.layers = weights_data.get("all_layers", [])
+        if not self.layers:
+            # Handle split mode if it was preserved that way
+            enc = weights_data.get("encoder_layers", [])
+            dec = weights_data.get("decoder_layers", [])
+            self.layers = enc + dec
 
-    class VAE_Wrapper(Model):
-        def __init__(self, encoder, decoder, **kwargs):
-            super(VAE_Wrapper, self).__init__(**kwargs)
-            self.encoder = encoder
-            self.decoder = decoder
-        
-        def call(self, inputs):
-            z_mean, z_log_var, z = self.encoder(inputs)
-            return self.decoder(z)
+    def predict(self, x):
+        out = x
+        for layer in self.layers:
+            w = np.array(layer["w"])
+            b = np.array(layer["b"])
+            out = np.dot(out, w) + b
+            if layer["activation"] == "relu":
+                out = np.maximum(0, out)
+            elif layer["activation"] == "sigmoid":
+                out = 1 / (1 + np.exp(-out))
+        return out
 
 # --- 2. THE ROBUST SENTINEL CLASS ---
 class FraudSentinel:
-    def __init__(self, model_path, scaler_path):
-        """Initializes the Hybrid Fraud Engine."""
-        if not TF_AVAILABLE:
-            print("❌ Sentinel Disabled: TensorFlow missing.")
+    def __init__(self, weights_path, scaler_path):
+        """Initializes the Hybrid Fraud Engine with NumPy."""
+        print(f"Loading Sentinel Weights from {weights_path}...")
+        self.disabled = False
+        
+        try:
+            # 1. Load the Model via NumPy
+            if not os.path.exists(weights_path):
+                 # Try fallback to backend/models/ if path is relative or from different CWD
+                 base = os.path.join(os.path.dirname(os.path.dirname(__file__)), "models")
+                 weights_path = os.path.join(base, "upi_weights.json")
+
+            self.model = NumPyVAE(weights_path)
+            print("✅ Sentinel VAE (NumPy) loaded.")
+        except Exception as e:
+            print(f"❌ Error loading VAE weights: {e}")
             self.disabled = True
             return
 
-        print(f"Loading Sentinel VAE from {model_path}...")
-        self.disabled = False
-        
-        # 1. Load the Model
-        # We use compile=False because we don't need the optimizer/loss for inference
-        try:
-            self.model = load_model(
-                model_path, 
-                custom_objects={'Sampling': Sampling, 'VAE_Wrapper': VAE_Wrapper},
-                compile=False 
-            )
-        except Exception as e:
-            print(f"❌ Error loading Keras model: {e}")
-            self.disabled = True # Disable if load fails
-            return
-
         # 2. Load the Scaler
-        self.scaler = joblib.load(scaler_path)
-        
-        # 3. Determine Model Structure (The Fix for your Error)
-        self.mode = "end_to_end" # Default assumption
-        
         try:
-            # Try to find specific layers if they exist
-            self.encoder = self.model.get_layer("encoder")
-            self.decoder = self.model.get_layer("decoder")
-            self.mode = "split"
-            print("✅ Model loaded in SPLIT mode (Encoder/Decoder found).")
-        except ValueError:
-            # If "encoder" layer is missing, we treat the whole model as Input -> Output
-            print("⚠️ Layer 'encoder' not found. Switching to END-TO-END mode (Input -> Reconstruction).")
-            self.mode = "end_to_end"
-
+            self.scaler = joblib.load(scaler_path)
+        except Exception as e:
+            print(f"❌ Error loading Sentinel Scaler: {e}")
+            self.disabled = True
+            return
+        
         # Calibration Stats (Hardcoded from Phase 20)
         self.ERROR_MEAN = 0.002153
         self.ERROR_STD = 0.007513
@@ -110,13 +95,10 @@ class FraudSentinel:
         # Inference
         scaled_input = self.scaler.transform(features)
         
-        # RECONSTRUCTION LOGIC (Handles both model types)
-        if self.mode == "split":
-            enc_out = self.encoder.predict(scaled_input, verbose=0)
-            z = enc_out[0] if isinstance(enc_out, list) else enc_out
-            reconstruction = self.decoder.predict(z, verbose=0)
-        else:
-            reconstruction = self.model.predict(scaled_input, verbose=0)
+        # RECONSTRUCTION LOGIC (NumPy)
+        reconstruction = self.model.predict(scaled_input[0])
+        # Reshape to match scaled_input for MSE calc
+        reconstruction = reconstruction.reshape(1, -1)
         
         # Calculate Error
         mse = np.mean(np.power(scaled_input - reconstruction, 2))
