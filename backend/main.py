@@ -70,10 +70,10 @@ if cred:
     except ValueError:
         # App already initialized
         db = firestore.client()
-except Exception as e:
-    init_error = f"Firestore Client Error: {str(e)}"
-    print(f"❌ Failed to initialize Firestore: {init_error}")
-    db = None
+    except Exception as e:
+        init_error = f"Firestore Client Error: {str(e)}"
+        print(f"❌ Failed to initialize Firestore: {init_error}")
+        db = None
 else:
     db = None # Will cause errors if not handled, but better than crash on startup
 
