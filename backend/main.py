@@ -28,6 +28,8 @@ from sentinel_module.detect_fraud import FraudSentinel
 
 # Initialize Firebase
 cred_path = os.path.join(os.path.dirname(__file__), 'firebase-credentials.json')
+init_error = "Not initialized"
+db = None
 
 # 1. Try Environment Variable (For Production/Railway)
 firebase_env = os.environ.get("FIREBASE_CREDENTIALS_BASE64")
@@ -41,17 +43,25 @@ if firebase_env:
         cred = credentials.Certificate(cred_json)
         print("✅ Loaded Firebase Credentials from Environment Variable")
     except Exception as e:
-        print(f"❌ Error loading Firebase Env: {e}")
+        init_error = f"B64/JSON Error: {str(e)}"
+        print(f"❌ Error loading Firebase Env: {init_error}")
         cred = None
+else:
+    init_error = "FIREBASE_CREDENTIALS_BASE64 not found in environment."
 
 # 2. Try Local File (For Local Dev)
-elif os.path.exists(cred_path):
-    cred = credentials.Certificate(cred_path)
-    print(f"✅ Loaded Firebase Credentials from Local File: {cred_path}")
+if not cred and os.path.exists(cred_path):
+    try:
+        cred = credentials.Certificate(cred_path)
+        print(f"✅ Loaded Firebase Credentials from Local File: {cred_path}")
+        init_error = "None (Loaded from file)"
+    except Exception as e:
+        init_error = f"File Error: {str(e)}"
+        print(f"❌ Error loading File: {init_error}")
 
-else:
-    print("❌ No Firebase Credentials found in ENV or File!")
-    cred = None
+elif not cred:
+    print(f"❌ No Firebase Credentials found! Reason: {init_error}")
+    # Don't overwrite init_error here
 
 if cred:
     try:
@@ -60,6 +70,10 @@ if cred:
     except ValueError:
         # App already initialized
         db = firestore.client()
+except Exception as e:
+    init_error = f"Firestore Client Error: {str(e)}"
+    print(f"❌ Failed to initialize Firestore: {init_error}")
+    db = None
 else:
     db = None # Will cause errors if not handled, but better than crash on startup
 
@@ -224,7 +238,7 @@ class BlockRequest(BaseModel):
 @app.post("/block-entity")
 async def block_entity(request: BlockRequest):
     if db is None:
-        raise HTTPException(status_code=503, detail="Database connection offline. Action failed.")
+        raise HTTPException(status_code=503, detail=f"Database connection offline. Error: {init_error}")
     try:
         # Use simple document ID as entity_id to prevent duplicates
         doc_ref = db.collection('blocked_registry').document(request.entity_id)
@@ -258,7 +272,7 @@ async def get_alerts():
 async def analyze_transaction(data: TransactionData):
     print(f"Received analysis request for user: {data.user_id}")
     if db is None:
-        raise HTTPException(status_code=503, detail="Database connection offline.")
+        raise HTTPException(status_code=503, detail=f"Database connection offline. Error: {init_error}")
     try:
         tx_dict = data.model_dump()
         user_id = tx_dict.pop('user_id')
@@ -360,6 +374,17 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "ok", "models_loaded": hybrid_model.lgb_model is not None}
+
+@app.get("/db-status")
+async def db_status_check():
+    """Diagnostic endpoint to check Firebase status"""
+    return {
+        "status": "Connected" if db is not None else "Disconnected",
+        "env_present": "FIREBASE_CREDENTIALS_BASE64" in os.environ,
+        "env_length": len(os.environ.get("FIREBASE_CREDENTIALS_BASE64", "")) if os.environ.get("FIREBASE_CREDENTIALS_BASE64") else 0,
+        "init_error": init_error,
+        "local_file_exists": os.path.exists(cred_path)
+    }
 
 @app.get("/fraud-heatmap")
 async def get_fraud_heatmap():
