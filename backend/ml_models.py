@@ -71,11 +71,21 @@ class HybridFraudModel:
             # 1. Load LightGBM
             lgb_path = os.path.join(self.models_dir, 'lgb_model.txt')
             if os.path.exists(lgb_path):
-                import lightgbm as lgb
-                self.lgb_model = lgb.Booster(model_file=lgb_path)
-                print("✅ LightGBM loaded.")
+                try:
+                    import lightgbm as lgb
+                    self.lgb_model = lgb.Booster(model_file=lgb_path)
+                    print("✅ LightGBM loaded.")
+                except ImportError as ie:
+                    print(f"❌ LightGBM library missing or broken (libgomp?): {ie}")
+                    print("⚠️ proceeding with LightGBM DISABLED.")
+                    self.lgb_model = None
+                except Exception as e:
+                    print(f"❌ Error loading LightGBM model file: {e}")
+                    self.lgb_model = None
             else:
                 print("⚠️ LightGBM model file not found.")
+                # We return False here because if the file is missing, we might want to trigger training (in dev)
+                # But in prod, it just means disabled.
                 return False
 
             # 2. Load Autoencoder Weights (JSON)
