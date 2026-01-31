@@ -8,3 +8,4 @@ firebase-admin
 lightgbm
 groq
 python-dotenv
+scikit-learn
