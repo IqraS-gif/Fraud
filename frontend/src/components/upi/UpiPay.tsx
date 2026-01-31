@@ -29,7 +29,6 @@ export const UpiPay = () => {
   const [selectedUser, setSelectedUser] = useState<string>("user_common")
   const [dailySpent, setDailySpent] = useState<number>(0)
   const [dailyLimit, setDailyLimit] = useState<number>(50000)
-  const [userType, setUserType] = useState<string>("personal")
 
   // Fetch users on mount
   useEffect(() => {
@@ -41,7 +40,6 @@ export const UpiPay = () => {
           setUsers(data.users)
           const firstUser = data.users[0]
           setSelectedUser(firstUser.id)
-          setUserType(firstUser.type)
           setDailyLimit(firstUser.type === "business" ? 1000000 : 50000)
           fetchUserHistory(firstUser.id)
         }
@@ -63,7 +61,6 @@ export const UpiPay = () => {
     setSelectedUser(userId)
     const user = users.find(u => u.id === userId)
     if (user) {
-      setUserType(user.type)
       setDailyLimit(user.type === "business" ? 1000000 : 50000)
     }
     fetchUserHistory(userId)
@@ -95,7 +92,6 @@ export const UpiPay = () => {
 
       if (result.daily_spent !== undefined) setDailySpent(result.daily_spent)
       if (result.daily_limit !== undefined) setDailyLimit(result.daily_limit)
-      if (result.user_type) setUserType(result.user_type)
 
       if (result.verdict === "BLOCKED") {
         setFraudReason(result.reason)

@@ -9,6 +9,40 @@ interface Message {
     content: string
 }
 
+// --- Web Speech API Types ---
+interface SpeechRecognitionEvent extends Event {
+    resultIndex: number;
+    results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognition extends EventTarget {
+    anonymous: boolean;
+    continuous: boolean;
+    grammars: any; // Simplified to avoid complex SpeechGrammarList definition
+    interimResults: boolean;
+    lang: string;
+    maxAlternatives: number;
+    onaudioend: ((this: SpeechRecognition, ev: Event) => any) | null;
+    onaudiostart: ((this: SpeechRecognition, ev: Event) => any) | null;
+    onend: ((this: SpeechRecognition, ev: Event) => any) | null;
+    onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
+    onnomatch: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+    onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+    onsoundend: ((this: SpeechRecognition, ev: Event) => any) | null;
+    onsoundstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+    onspeechend: ((this: SpeechRecognition, ev: Event) => any) | null;
+    onspeechstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+    onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+    abort(): void;
+    start(): void;
+    stop(): void;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+    error: string;
+    message: string;
+}
+
 // System prompt for Groq
 const SYSTEM_PROMPT = `You are a helpful, empathetic Hindi-speaking assistant for scam victims.
 
@@ -36,7 +70,7 @@ export const VoiceAssistant = () => {
     const [selectedVoice, setSelectedVoice] = useState<string>("")
 
     // Refs
-    const recognitionRef = useRef<any>(null)
+    const recognitionRef = useRef<SpeechRecognition | null>(null)
     const synthRef = useRef<SpeechSynthesis | null>(null)
     const messagesEndRef = useRef<HTMLDivElement>(null)
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -154,8 +188,8 @@ export const VoiceAssistant = () => {
             } else {
                 audioQueueRef.current.shift()
             }
-        } catch (e) {
-            console.error("Queue Error", e)
+        } catch {
+            console.error("Queue Error")
         } finally {
             isPlayingRef.current = false
             if (audioQueueRef.current.length > 0) {
@@ -166,77 +200,7 @@ export const VoiceAssistant = () => {
         }
     }
 
-    // --- SPEECH RECOGNITION ---
-    const startListening = useCallback(() => {
-        if (typeof window === "undefined") return
-        stopState() // Stop everything before listening
-
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-        if (!SpeechRecognition) {
-            alert("Browser not supported")
-            return
-        }
-
-        const recognition = new SpeechRecognition()
-        recognition.lang = "hi-IN"
-        recognition.continuous = true
-        recognition.interimResults = true
-
-        recognition.onstart = () => {
-            setIsListening(true)
-            transcriptRef.current = ""
-            setCurrentTranscript("")
-        }
-
-        recognition.onresult = (event: any) => {
-            // Disabled Interrupt
-            // if (isSpeaking) stopState() 
-
-            let finalTranscript = ""
-            let interimTranscript = ""
-
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript
-                } else {
-                    interimTranscript += event.results[i][0].transcript
-                }
-            }
-
-            if (finalTranscript) {
-                transcriptRef.current += " " + finalTranscript
-                setCurrentTranscript(transcriptRef.current)
-
-                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
-                silenceTimerRef.current = setTimeout(() => {
-                    stopListening()
-                }, 2000)
-            } else if (interimTranscript) {
-                setCurrentTranscript(transcriptRef.current + " " + interimTranscript)
-                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
-                silenceTimerRef.current = setTimeout(() => {
-                    stopListening()
-                }, 3000)
-            }
-        }
-
-        recognition.onend = () => {
-            setIsListening(false)
-            if (transcriptRef.current.trim()) {
-                handleUserMessage(transcriptRef.current.trim())
-            }
-        }
-
-        recognitionRef.current = recognition
-        recognition.start()
-    }, [groqKey])
-
-    const stopListening = () => {
-        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
-        if (recognitionRef.current) recognitionRef.current.stop()
-    }
-
-    const stopState = () => {
+    const stopState = useCallback(() => {
         if (synthRef.current) synthRef.current.cancel()
         audioQueueRef.current = []
         isPlayingRef.current = false
@@ -246,10 +210,15 @@ export const VoiceAssistant = () => {
         }
         setIsSpeaking(false)
         setIsProcessing(false)
-    }
+    }, [])
+
+    const stopListening = useCallback(() => {
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
+        if (recognitionRef.current) recognitionRef.current.stop()
+    }, [])
 
     // --- STREAMING GROQ API ---
-    const handleUserMessage = async (text: string) => {
+    const handleUserMessage = useCallback(async (text: string) => {
         if (!text.trim()) return
 
         const userMsg: Message = { role: "user", content: text }
@@ -325,19 +294,81 @@ export const VoiceAssistant = () => {
                                     }
                                 }
                             }
-                        } catch (e) { }
+                        } catch { }
                     }
                 }
             }
             if (buffer.trim()) addToAudioQueue(buffer.trim())
 
-        } catch (error: any) {
-            if (error.name !== 'AbortError') console.error("Groq Error:", error)
+        } catch (error) {
+            if (error instanceof Error && error.name !== 'AbortError') console.error("Groq Error:", error)
         } finally {
             setIsProcessing(false)
             abortControllerRef.current = null
         }
-    }
+    }, [groqKey, messages]) // Dependencies for handleUserMessage
+
+    // --- SPEECH RECOGNITION ---
+    const startListening = useCallback(() => {
+        if (typeof window === "undefined") return
+        stopState() // Stop everything before listening
+
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+        if (!SpeechRecognition) {
+            alert("Browser not supported")
+            return
+        }
+
+        const recognition = new SpeechRecognition()
+        recognition.lang = "hi-IN"
+        recognition.continuous = true
+        recognition.interimResults = true
+
+        recognition.onstart = () => {
+            setIsListening(true)
+            transcriptRef.current = ""
+            setCurrentTranscript("")
+        }
+
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+            let finalTranscript = ""
+            let interimTranscript = ""
+
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript
+                } else {
+                    interimTranscript += event.results[i][0].transcript
+                }
+            }
+
+            if (finalTranscript) {
+                transcriptRef.current += " " + finalTranscript
+                setCurrentTranscript(transcriptRef.current)
+
+                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
+                silenceTimerRef.current = setTimeout(() => {
+                    stopListening()
+                }, 2000)
+            } else if (interimTranscript) {
+                setCurrentTranscript(transcriptRef.current + " " + interimTranscript)
+                if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current)
+                silenceTimerRef.current = setTimeout(() => {
+                    stopListening()
+                }, 3000)
+            }
+        }
+
+        recognition.onend = () => {
+            setIsListening(false)
+            if (transcriptRef.current.trim()) {
+                handleUserMessage(transcriptRef.current.trim())
+            }
+        }
+
+        recognitionRef.current = recognition
+        recognition.start()
+    }, [stopState, stopListening, handleUserMessage]) // Correct dependencies
 
     const startConversation = () => {
         setShowApiInput(false)
