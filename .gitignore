@@ -41,6 +41,6 @@ backend/venv/
 backend/lib/
 backend/.env
 backend/tmp/
-backend/firebase-credentails.json
+backend/firebase-credentials.json
 __pycache__/
 *.pyc

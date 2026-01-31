@@ -27,14 +27,16 @@ import time
 from sentinel_module.detect_fraud import FraudSentinel
 
 # Initialize Firebase
-cred_path = os.path.join(os.path.dirname(__file__), 'firebase-credentails.json')
+cred_path = os.path.join(os.path.dirname(__file__), 'firebase-credentials.json')
 
-# 1. Try Environment Variable (For Production/Render)
+# 1. Try Environment Variable (For Production/Railway)
 firebase_env = os.environ.get("FIREBASE_CREDENTIALS_BASE64")
 if firebase_env:
     import base64
     import json
     try:
+        # Sanitation: Clean whitespace and quotes that often get added by accident in UI
+        firebase_env = firebase_env.strip().strip('"').strip("'")
         cred_json = json.loads(base64.b64decode(firebase_env))
         cred = credentials.Certificate(cred_json)
         print("✅ Loaded Firebase Credentials from Environment Variable")
@@ -48,7 +50,7 @@ elif os.path.exists(cred_path):
     print(f"✅ Loaded Firebase Credentials from Local File: {cred_path}")
 
 else:
-    print("❌ No Firebase Credentials found!")
+    print("❌ No Firebase Credentials found in ENV or File!")
     cred = None
 
 if cred:
@@ -142,6 +144,10 @@ def get_user_risk_profile(user_id):
     Fetches user type and calculates their REAL spending today.
     """
     # A. Get User Type (Business vs Personal)
+    if db is None:
+        print("⚠️ Database offline. Defaulting to 'personal'.")
+        return 'personal', 0, 3600
+
     user_ref = db.collection('users').document(user_id).get()
     
     if user_ref.exists:
@@ -236,6 +242,8 @@ async def block_entity(request: BlockRequest):
 
 @app.get("/alerts")
 async def get_alerts():
+    if db is None:
+        return {"status": "error", "message": "Database offline"}
     try:
         alerts_ref = db.collection('alerts').order_by('timestamp', direction=firestore.Query.DESCENDING).limit(10).stream()
         alerts = [doc.to_dict() for doc in alerts_ref]
@@ -247,6 +255,8 @@ async def get_alerts():
 @app.post("/analyze-transaction")
 async def analyze_transaction(data: TransactionData):
     print(f"Received analysis request for user: {data.user_id}")
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database connection offline.")
     try:
         tx_dict = data.model_dump()
         user_id = tx_dict.pop('user_id')
@@ -332,6 +342,8 @@ async def analyze_transaction(data: TransactionData):
 
 @app.get("/transactions/{user_id}")
 async def get_user_transactions(user_id: str):
+    if db is None:
+        return {"status": "error", "message": "Database offline"}
     try:
         docs = db.collection('user_transactions').document(user_id).collection('transactions').order_by('timestamp', direction=firestore.Query.DESCENDING).limit(50).stream()
         tx_list = [doc.to_dict() for doc in docs]
@@ -526,6 +538,9 @@ def get_user_history(user_id: str):
 def analyze_upi_transaction(txn: UpiTransactionRequest):
     if not sentinel:
         raise HTTPException(status_code=503, detail="UPI Model Loading...")
+    
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database connection offline.")
 
     # STEP 1: Get Real Context from Database
     user_type, past_spent, real_time_gap = get_user_risk_profile(txn.user_id)
