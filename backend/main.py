@@ -1,12 +1,17 @@
-from fastapi import FastAPI, HTTPException
 import os
 import sys
-# Add local lib to path for tensorflow (Fix for Windows Long Path - Local Dev Only)
-local_lib_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'lib')
+
+# Add backend directory to sys.path to ensure local modules are importable
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+# Add local lib if it exists
+local_lib_path = os.path.join(backend_dir, 'lib')
 if os.path.exists(local_lib_path):
     sys.path.insert(0, local_lib_path)
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
 from ml_models import hybrid_model
