@@ -223,6 +223,8 @@ class BlockRequest(BaseModel):
 
 @app.post("/block-entity")
 async def block_entity(request: BlockRequest):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database connection offline. Action failed.")
     try:
         # Use simple document ID as entity_id to prevent duplicates
         doc_ref = db.collection('blocked_registry').document(request.entity_id)
