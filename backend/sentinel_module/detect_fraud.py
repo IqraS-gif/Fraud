@@ -1,36 +1,50 @@
 import pandas as pd
 import numpy as np
-import tensorflow as tf
-from tensorflow.keras.models import load_model
-from tensorflow.keras import layers, Model, backend as K
 import joblib
 from scipy import stats
 import os
 
-# --- 1. DEFINE CUSTOM LAYERS (Keep this just in case) ---
-class Sampling(layers.Layer):
-    def call(self, inputs):
-        z_mean, z_log_var = inputs
-        batch = tf.shape(z_mean)[0]
-        dim = tf.shape(z_mean)[1]
-        epsilon = K.random_normal(shape=(batch, dim))
-        return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+# Optional TensorFlow Import
+try:
+    import tensorflow as tf
+    from tensorflow.keras.models import load_model
+    from tensorflow.keras import layers, Model, backend as K
+    TF_AVAILABLE = True
+except ImportError:
+    TF_AVAILABLE = False
+    print("⚠️ TensorFlow not found. UPI Sentinel will be disabled.")
 
-class VAE_Wrapper(Model):
-    def __init__(self, encoder, decoder, **kwargs):
-        super(VAE_Wrapper, self).__init__(**kwargs)
-        self.encoder = encoder
-        self.decoder = decoder
-    
-    def call(self, inputs):
-        z_mean, z_log_var, z = self.encoder(inputs)
-        return self.decoder(z)
+# --- 1. DEFINE CUSTOM LAYERS (Keep this just in case) ---
+if TF_AVAILABLE:
+    class Sampling(layers.Layer):
+        def call(self, inputs):
+            z_mean, z_log_var = inputs
+            batch = tf.shape(z_mean)[0]
+            dim = tf.shape(z_mean)[1]
+            epsilon = K.random_normal(shape=(batch, dim))
+            return z_mean + tf.exp(0.5 * z_log_var) * epsilon
+
+    class VAE_Wrapper(Model):
+        def __init__(self, encoder, decoder, **kwargs):
+            super(VAE_Wrapper, self).__init__(**kwargs)
+            self.encoder = encoder
+            self.decoder = decoder
+        
+        def call(self, inputs):
+            z_mean, z_log_var, z = self.encoder(inputs)
+            return self.decoder(z)
 
 # --- 2. THE ROBUST SENTINEL CLASS ---
 class FraudSentinel:
     def __init__(self, model_path, scaler_path):
         """Initializes the Hybrid Fraud Engine."""
+        if not TF_AVAILABLE:
+            print("❌ Sentinel Disabled: TensorFlow missing.")
+            self.disabled = True
+            return
+
         print(f"Loading Sentinel VAE from {model_path}...")
+        self.disabled = False
         
         # 1. Load the Model
         # We use compile=False because we don't need the optimizer/loss for inference
@@ -42,7 +56,8 @@ class FraudSentinel:
             )
         except Exception as e:
             print(f"❌ Error loading Keras model: {e}")
-            raise e
+            self.disabled = True # Disable if load fails
+            return
 
         # 2. Load the Scaler
         self.scaler = joblib.load(scaler_path)
@@ -72,6 +87,10 @@ class FraudSentinel:
         Analyze transaction with user context.
         user_limit: The user's daily limit (50000 for personal, 1000000 for business)
         """
+        if getattr(self, 'disabled', False):
+            # Fallback if TF is missing
+            return "APPROVED", "Sentinel Offline (Lightweight Mode)", 0.0
+
         # --- LAYER 1: VELOCITY TRAP ---
         if 2 < time_gap < 30:
             return "BLOCKED", f"VELOCITY_VIOLATION: Speed limit breached ({time_gap}s gap)", 100.0
