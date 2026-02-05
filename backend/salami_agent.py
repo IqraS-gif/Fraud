@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 # Initialize Firebase (Same credentials as main.py)
-cred_path = os.path.join(os.path.dirname(__file__), 'firebase-credentails.json')
+cred_path = os.path.join(os.path.dirname(__file__), 'firebase-credentials.json')
 if not firebase_admin._apps:
     cred = credentials.Certificate(cred_path)
     firebase_admin.initialize_app(cred)

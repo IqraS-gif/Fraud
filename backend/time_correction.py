@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 
 # Initialize Firebase
-cred_path = os.path.join(os.path.dirname(__file__), 'firebase-credentails.json')
+cred_path = os.path.join(os.path.dirname(__file__), 'firebase-credentials.json')
 cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred)
 db = firestore.client()
