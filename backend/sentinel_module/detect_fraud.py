@@ -76,6 +76,9 @@ class FraudSentinel:
             # Fallback if TF is missing
             return "APPROVED", "Sentinel Offline (Lightweight Mode)", 0.0
 
+        # Determine if this is a business user (higher limit = business)
+        is_business = user_limit >= 500000
+
         # --- LAYER 1: VELOCITY TRAP ---
         if 2 < time_gap < 30:
             return "BLOCKED", f"VELOCITY_VIOLATION: Speed limit breached ({time_gap}s gap)", 100.0
@@ -103,15 +106,26 @@ class FraudSentinel:
         # Calculate Error
         mse = np.mean(np.power(scaled_input - reconstruction, 2))
         
-        # Calculate Risk Probability
-        z_score = (mse - self.ERROR_MEAN) / self.ERROR_STD
+        # Calculate Risk Probability with adjusted thresholds
+        # Use more relaxed thresholds for business users
+        error_mean = self.ERROR_MEAN
+        error_std = self.ERROR_STD * (2.0 if is_business else 1.0)  # Business gets 2x tolerance
+        
+        z_score = (mse - error_mean) / error_std
+        # Cap z-score to prevent extreme confidence values
+        z_score = min(z_score, 4.0)  # Cap at 4 standard deviations
+        
         confidence = stats.norm.cdf(z_score) * 100
         confidence = min(99.99, max(0.01, confidence))
 
-        # Final Decision
-        if confidence > 99.9:
+        # Final Decision with user-type aware thresholds
+        # Business users have higher thresholds before blocking
+        block_threshold = 99.95 if is_business else 99.9
+        flag_threshold = 98 if is_business else 95
+        
+        if confidence > block_threshold:
             return "BLOCKED", "AI_ANOMALY_DETECTED: Pattern is statistically impossible", confidence
-        elif confidence > 95:
+        elif confidence > flag_threshold:
             return "FLAGGED", "SUSPICIOUS_ACTIVITY: Step-Up Auth Required", confidence
         else:
             return "APPROVED", "NORMAL_BEHAVIOR", confidence
