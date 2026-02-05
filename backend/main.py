@@ -30,6 +30,7 @@ from sentinel_module.detect_fraud import FraudSentinel
 cred_path = os.path.join(os.path.dirname(__file__), 'firebase-credentials.json')
 init_error = "Not initialized"
 db = None
+cred = None
 
 # 1. Try Environment Variable (For Production/Railway)
 firebase_env = os.environ.get("FIREBASE_CREDENTIALS_BASE64")
@@ -517,16 +518,18 @@ if __name__ == "__main__":
 
 @app.get("/users")
 def get_users():
-    """Get all registered users for frontend dropdown"""
+    """Get all registered UPI user profiles for frontend dropdown"""
     users = []
     docs = db.collection('users').stream()
     for doc in docs:
-        data = doc.to_dict()
-        users.append({
-            "id": doc.id,
-            "name": data.get("name", doc.id),
-            "type": data.get("type", "personal")
-        })
+        # Only include UPI user profiles (user_*), not transaction accounts (ACC_*)
+        if doc.id.startswith('user_'):
+            data = doc.to_dict()
+            users.append({
+                "id": doc.id,
+                "name": data.get("name", doc.id),
+                "type": data.get("type", "personal")
+            })
     return {"users": users}
 
 @app.get("/users/{user_id}/history")
