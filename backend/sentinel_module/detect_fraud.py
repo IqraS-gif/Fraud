@@ -78,9 +78,14 @@ class FraudSentinel:
 
         # Determine if this is a business user (higher limit = business)
         is_business = user_limit >= 500000
+        
+        # Check if this is likely a first transaction (time_gap >= 3600 means no recent history)
+        is_first_transaction = time_gap >= 3600
 
         # --- LAYER 1: VELOCITY TRAP ---
-        if 2 < time_gap < 30:
+        # Only apply velocity check if user has recent transaction history
+        # Skip for first transactions (no history = can't judge velocity)
+        if not is_first_transaction and 2 < time_gap < 15:
             return "BLOCKED", f"VELOCITY_VIOLATION: Speed limit breached ({time_gap}s gap)", 100.0
 
         # --- LAYER 2: VAE BRAIN (Context-Aware) ---
