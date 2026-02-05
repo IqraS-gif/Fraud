@@ -168,12 +168,12 @@ export const UpiPay = () => {
         {/* User Selector */}
         <div className="bg-slate-900/50 border border-slate-800 rounded-lg p-4">
           <label className="block text-sm font-medium text-slate-400 mb-2">Select User Profile</label>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {users.map((user) => (
               <button
                 key={user.id}
                 onClick={() => handleUserChange(user.id)}
-                className={`flex-1 p-3 rounded-lg border-2 transition-all ${selectedUser === user.id
+                className={`p-3 rounded-lg border-2 transition-all ${selectedUser === user.id
                   ? 'border-blue-500 bg-blue-500/10'
                   : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
                   }`}
@@ -184,7 +184,7 @@ export const UpiPay = () => {
                   ) : (
                     <User className="h-4 w-4 text-blue-400" />
                   )}
-                  <span className="text-sm text-white font-medium">{user.name}</span>
+                  <span className="text-sm text-white font-medium truncate">{user.name}</span>
                 </div>
                 <div className="text-xs text-slate-500 mt-1 capitalize">{user.type}</div>
               </button>
