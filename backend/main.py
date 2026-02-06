@@ -98,8 +98,8 @@ except Exception as e:
     blocked_ref = None
 
 # --- UPI SENTINEL ---
-UPI_MODEL_PATH = "models/upi_weights.json"
-UPI_SCALER_PATH = "upi_models/feature_scaler.pkl"
+UPI_MODEL_PATH = os.path.join(os.path.dirname(__file__), "models", "upi_weights.json")
+UPI_SCALER_PATH = os.path.join(os.path.dirname(__file__), "upi_models", "feature_scaler.pkl")
 sentinel = None
 
 
@@ -109,26 +109,23 @@ async def lifespan(app: FastAPI):
     print("🚀 App Startup: Initializing Models...")
     
     loaded = hybrid_model.load_models()
+    # loaded = False
+    # print("⚠️ ML Models DISABLED for debugging...")
     
     if not loaded:
         # Fallback Logic
         env = os.environ.get("ENV", "development")
-        print(f"⚠️ Pre-trained models not found. Environment: {env}")
+        print(f"⚠️ Pre-trained models not found/failed to load. Environment: {env}")
         
         if env == "production":
             print("❌ CRITICAL: In production mode but models not found!")
-            # raises RuntimeError to prevent boot if strict. 
-            # Or we let it run but API will fail.
-            # raise RuntimeError("Models not found in production") 
-            # User requested logic:
-            # if os.getenv("ENV") == "production": raise ... 
-            # actually user provided: if not hybrid_model.load_models(): ... (see plan)
             pass 
         
         # In Dev, we attempt fallback training
         # But this requires deps. train_models() handles the import check.
         print("💡 Attempting fallback training (Dev Only)...")
-        hybrid_model.train_models()
+        # hybrid_model.train_models()
+        print("💡 Skipping fallback training to speed up startup...")
     
     # Load UPI Sentinel
     global sentinel
@@ -630,3 +627,57 @@ def analyze_upi_transaction(txn: UpiTransactionRequest):
         "daily_limit": limit
     }
 
+
+# --- COMMUNITY FRAUD ENDPOINTS ---
+
+class CommunityPost(BaseModel):
+    author: str
+    type: str
+    content: str
+    location: Optional[str] = "Unknown"
+    avatarSeed: Optional[str] = "Felix" # For frontend avatar generation
+
+@app.post("/community/report")
+async def create_community_report(post: CommunityPost):
+    if db is None:
+        raise HTTPException(status_code=503, detail="Database offline")
+    
+    try:
+        # Create a new document in 'community_reports'
+        # Auto-generate ID
+        new_report_ref = db.collection('community_reports').document()
+        
+        report_data = post.model_dump()
+        report_data["timestamp"] = datetime.now().strftime("%Y-%m-%d %I:%M %p") # Simple string format for frontend
+        report_data["verified"] = False # Default to unverified
+        report_data["trustScore"] = 0
+        report_data["comments"] = 0
+        report_data["id"] = new_report_ref.id
+        
+        new_report_ref.set(report_data)
+        
+        print(f"📢 New Community Report: {post.type} by {post.author}")
+        return {"status": "success", "message": "Report posted to community!", "id": new_report_ref.id}
+    except Exception as e:
+        print(f"Error posting community report: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/community/reports")
+async def get_community_reports():
+    if db is None:
+         # Fallback to empty list or demo data could be handled here, 
+         # but let's return error so frontend knows real DB is down
+        return {"status": "error", "message": "Database offline"}
+    
+    try:
+        # Get latest 20 reports
+        docs = db.collection('community_reports').order_by('timestamp', direction=firestore.Query.DESCENDING).limit(20).stream()
+        reports = []
+        for doc in docs:
+            reports.append(doc.to_dict())
+            
+        print(f"📢 Fetched {len(reports)} community reports.")
+        return {"status": "success", "data": reports}
+    except Exception as e:
+        print(f"Error fetching community reports: {e}")
+        return {"status": "error", "message": str(e)}
